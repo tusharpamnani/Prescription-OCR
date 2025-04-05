@@ -1,0 +1,289 @@
+<!-- templates/annotate.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card shadow mb-4">
+            <div class="card-header bg-warning text-dark">
+                <h2 class="my-2"><i class="fas fa-edit me-2"></i>Annotate Prescription</h2>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Use this tool to annotate prescription elements for training the model.
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-8 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0">Prescription Image</h5>
+                            </div>
+                            <div class="card-body text-center">
+                                <img src="{{ url_for('static', filename='uploads/' + uploaded_img) }}" class="img-fluid img-thumbnail" id="prescription-image" alt="Prescription">
+                                <div id="annotation-canvas" class="position-absolute" style="top: 0; left: 0; pointer-events: none;"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0">Annotation Tools</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label for="element-type" class="form-label">Element Type</label>
+                                    <select class="form-select" id="element-type">
+                                        <option value="hospital">Hospital</option>
+                                        <option value="patient">Patient</option>
+                                        <option value="date">Date</option>
+                                        <option value="medicine">Medicine</option>
+                                        <option value="dosage">Dosage</option>
+                                        <option value="usage">Usage</option>
+                                        <option value="doctor">Doctor</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <button class="btn btn-primary w-100" id="start-annotation">
+                                        <i class="fas fa-draw-polygon me-2"></i>Start Annotation
+                                    </button>
+                                </div>
+                                <div class="mb-3">
+                                    <button class="btn btn-success w-100" id="save-annotation">
+                                        <i class="fas fa-save me-2"></i>Save Annotation
+                                    </button>
+                                </div>
+                                <div class="mb-3">
+                                    <button class="btn btn-danger w-100" id="clear-annotation">
+                                        <i class="fas fa-trash me-2"></i>Clear All
+                                    </button>
+                                </div>
+                                <hr>
+                                <div class="mb-3">
+                                    <h6>Current Annotations</h6>
+                                    <div id="annotations-list" class="list-group">
+                                        <!-- Annotations will be listed here -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="text-center mt-4">
+                    <a href="{{ url_for('index') }}" class="btn btn-secondary me-2">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Home
+                    </a>
+                    <button id="submit-annotations" class="btn btn-primary">
+                        <i class="fas fa-check me-2"></i>Submit Annotations
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const image = document.getElementById('prescription-image');
+        const canvas = document.getElementById('annotation-canvas');
+        const elementType = document.getElementById('element-type');
+        const startBtn = document.getElementById('start-annotation');
+        const saveBtn = document.getElementById('save-annotation');
+        const clearBtn = document.getElementById('clear-annotation');
+        const submitBtn = document.getElementById('submit-annotations');
+        const annotationsList = document.getElementById('annotations-list');
+        
+        let isDrawing = false;
+        let startX, startY;
+        let currentRect = null;
+        let annotations = [];
+        
+        // Set canvas size to match image
+        function resizeCanvas() {
+            canvas.width = image.offsetWidth;
+            canvas.height = image.offsetHeight;
+        }
+        
+        // Initial resize
+        resizeCanvas();
+        
+        // Resize on window change
+        window.addEventListener('resize', resizeCanvas);
+        
+        // Start annotation
+        startBtn.addEventListener('click', function() {
+            isDrawing = true;
+            startBtn.disabled = true;
+            saveBtn.disabled = false;
+            canvas.style.pointerEvents = 'auto';
+        });
+        
+        // Mouse events for drawing
+        canvas.addEventListener('mousedown', function(e) {
+            if (!isDrawing) return;
+            
+            const rect = canvas.getBoundingClientRect();
+            startX = e.clientX - rect.left;
+            startY = e.clientY - rect.top;
+            
+            // Create new rectangle
+            currentRect = document.createElement('div');
+            currentRect.style.position = 'absolute';
+            currentRect.style.border = '2px solid ' + getColorForType(elementType.value);
+            currentRect.style.left = startX + 'px';
+            currentRect.style.top = startY + 'px';
+            currentRect.style.width = '0px';
+            currentRect.style.height = '0px';
+            currentRect.style.pointerEvents = 'none';
+            
+            canvas.appendChild(currentRect);
+        });
+        
+        canvas.addEventListener('mousemove', function(e) {
+            if (!isDrawing || !currentRect) return;
+            
+            const rect = canvas.getBoundingClientRect();
+            const currentX = e.clientX - rect.left;
+            const currentY = e.clientY - rect.top;
+            
+            // Update rectangle size
+            const width = currentX - startX;
+            const height = currentY - startY;
+            
+            currentRect.style.width = Math.abs(width) + 'px';
+            currentRect.style.height = Math.abs(height) + 'px';
+            currentRect.style.left = (width < 0 ? currentX : startX) + 'px';
+            currentRect.style.top = (height < 0 ? currentY : startY) + 'px';
+        });
+        
+        canvas.addEventListener('mouseup', function() {
+            if (!isDrawing || !currentRect) return;
+            
+            // Save annotation
+            const type = elementType.value;
+            const rect = currentRect.getBoundingClientRect();
+            const canvasRect = canvas.getBoundingClientRect();
+            
+            annotations.push({
+                type: type,
+                x: (rect.left - canvasRect.left) / canvasRect.width,
+                y: (rect.top - canvasRect.top) / canvasRect.height,
+                width: rect.width / canvasRect.width,
+                height: rect.height / canvasRect.height
+            });
+            
+            // Add to list
+            const listItem = document.createElement('div');
+            listItem.className = 'list-group-item d-flex justify-content-between align-items-center';
+            listItem.innerHTML = `
+                <span>${type.charAt(0).toUpperCase() + type.slice(1)}</span>
+                <button class="btn btn-sm btn-danger remove-annotation" data-index="${annotations.length - 1}">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            annotationsList.appendChild(listItem);
+            
+            // Reset
+            currentRect = null;
+            isDrawing = false;
+            startBtn.disabled = false;
+            saveBtn.disabled = true;
+            canvas.style.pointerEvents = 'none';
+        });
+        
+        // Save annotation
+        saveBtn.addEventListener('click', function() {
+            if (currentRect) {
+                canvas.removeChild(currentRect);
+                currentRect = null;
+            }
+            isDrawing = false;
+            startBtn.disabled = false;
+            saveBtn.disabled = true;
+            canvas.style.pointerEvents = 'none';
+        });
+        
+        // Clear all annotations
+        clearBtn.addEventListener('click', function() {
+            while (canvas.firstChild) {
+                canvas.removeChild(canvas.firstChild);
+            }
+            annotations = [];
+            annotationsList.innerHTML = '';
+        });
+        
+        // Remove individual annotation
+        annotationsList.addEventListener('click', function(e) {
+            if (e.target.closest('.remove-annotation')) {
+                const index = parseInt(e.target.closest('.remove-annotation').dataset.index);
+                annotations.splice(index, 1);
+                e.target.closest('.list-group-item').remove();
+                
+                // Redraw all annotations
+                while (canvas.firstChild) {
+                    canvas.removeChild(canvas.firstChild);
+                }
+                
+                annotations.forEach(ann => {
+                    const rect = document.createElement('div');
+                    rect.style.position = 'absolute';
+                    rect.style.border = '2px solid ' + getColorForType(ann.type);
+                    rect.style.left = (ann.x * canvas.width) + 'px';
+                    rect.style.top = (ann.y * canvas.height) + 'px';
+                    rect.style.width = (ann.width * canvas.width) + 'px';
+                    rect.style.height = (ann.height * canvas.height) + 'px';
+                    rect.style.pointerEvents = 'none';
+                    canvas.appendChild(rect);
+                });
+            }
+        });
+        
+        // Submit annotations
+        submitBtn.addEventListener('click', function() {
+            if (annotations.length === 0) {
+                alert('Please add at least one annotation before submitting.');
+                return;
+            }
+            
+            fetch('/annotate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(annotations)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Annotations saved successfully!');
+                    window.location.href = '/';
+                } else {
+                    alert('Error saving annotations: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error saving annotations. Please try again.');
+            });
+        });
+        
+        // Helper function to get color for element type
+        function getColorForType(type) {
+            const colors = {
+                'hospital': 'rgb(255, 0, 0)',
+                'patient': 'rgb(0, 255, 0)',
+                'date': 'rgb(0, 0, 255)',
+                'medicine': 'rgb(255, 255, 0)',
+                'dosage': 'rgb(255, 0, 255)',
+                'usage': 'rgb(0, 255, 255)',
+                'doctor': 'rgb(128, 128, 0)'
+            };
+            return colors[type] || 'rgb(0, 0, 0)';
+        }
+    });
+</script>
+{% endblock %} 

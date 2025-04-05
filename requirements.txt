@@ -5,3 +5,4 @@ pytesseract==0.3.10
 opencv-python==4.8.0.76
 numpy==1.26.4
 werkzeug==2.3.7
+tensorflow==2.12.0
