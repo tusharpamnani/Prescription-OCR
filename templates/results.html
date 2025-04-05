@@ -1,0 +1,99 @@
+
+<!-- templates/results.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card shadow mb-4">
+            <div class="card-header bg-success text-white">
+                <h2 class="my-2"><i class="fas fa-clipboard-check me-2"></i>Prescription Analysis Results</h2>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    The image below shows your prescription with bounding boxes highlighting key information.
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0">Original Prescription</h5>
+                            </div>
+                            <div class="card-body text-center">
+                                <img src="{{ original_image }}" class="img-fluid img-thumbnail" alt="Original Prescription">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0">Analyzed Prescription</h5>
+                            </div>
+                            <div class="card-body text-center">
+                                <img src="{{ processed_image }}" class="img-fluid img-thumbnail" alt="Analyzed Prescription">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card mb-4">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">Color Legend</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4 mb-2">
+                                <div class="d-flex align-items-center">
+                                    <div class="color-box" style="background-color: rgb(255, 0, 0);"></div>
+                                    <div class="ms-2">Hospital Name</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <div class="d-flex align-items-center">
+                                    <div class="color-box" style="background-color: rgb(0, 255, 0);"></div>
+                                    <div class="ms-2">Patient Name</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <div class="d-flex align-items-center">
+                                    <div class="color-box" style="background-color: rgb(0, 0, 255);"></div>
+                                    <div class="ms-2">Date</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <div class="d-flex align-items-center">
+                                    <div class="color-box" style="background-color: rgb(255, 255, 0);"></div>
+                                    <div class="ms-2">Medicine</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <div class="d-flex align-items-center">
+                                    <div class="color-box" style="background-color: rgb(255, 0, 255);"></div>
+                                    <div class="ms-2">Dosage</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <div class="d-flex align-items-center">
+                                    <div class="color-box" style="background-color: rgb(0, 255, 255);"></div>
+                                    <div class="ms-2">Doctor's Name</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="text-center">
+                    <a href="{{ url_for('index') }}" class="btn btn-primary me-2">
+                        <i class="fas fa-arrow-left me-2"></i>Process Another Prescription
+                    </a>
+                    <a href="{{ processed_image }}" download class="btn btn-success">
+                        <i class="fas fa-download me-2"></i>Download Analyzed Image
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
